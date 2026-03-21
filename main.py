@@ -1,11 +1,13 @@
 from fastapi import FastAPI
+from core.config import settings
+from routers.health import router as health_router
+from routers.todo import router as todo_router
 
-app = FastAPI()
+app = FastAPI(
+    title=settings.app_name,
+    debug=settings.debug,
+    version=settings.version,
+)
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-@app.get("/")
-def root():
-    return {"message": "Chào mừng đến với To-Do"}
+app.include_router(health_router, prefix=settings.api_prefix)
+app.include_router(todo_router, prefix=settings.api_prefix)
