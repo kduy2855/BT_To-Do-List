@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, String
 from sqlmodel import Field, SQLModel
+
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -10,5 +11,5 @@ class User(SQLModel, table=True):
     hashed_password: str = Field(sa_column=Column(String(255), nullable=False))
     is_active: bool = Field(default=True)
     created_at: datetime = Field(
-        sa_column=Column(DateTime(), default=datetime.utcnow, nullable=False)
+        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     )
