@@ -4,7 +4,9 @@ pydantic-settings
 sqlmodel
 alembic
 passlib[bcrypt]
+bcrypt<5
 python-jose[cryptography]
 python-multipart
-sqlmodel
-alembic
+psycopg2-binary
+pytest
+httpx
