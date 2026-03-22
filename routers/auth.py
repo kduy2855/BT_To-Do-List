@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlmodel import Session, select
 
 from core.config import settings
 from core.database import get_db
@@ -14,9 +14,10 @@ from services.auth import authenticate_user, get_current_active_user
 
 router = APIRouter()
 
+
 @router.post("/register", response_model=UserSchema)
 def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
-    db_user = db.query(User).filter(User.email == user_in.email).first()
+    db_user = db.exec(select(User).where(User.email == user_in.email)).first()
     if db_user:
         raise HTTPException(
             status_code=400,
@@ -28,6 +29,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     db.commit()
     db.refresh(db_user)
     return db_user
+
 
 @router.post("/login", response_model=Token)
 def login(
@@ -45,6 +47,7 @@ def login(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.get("/me", response_model=UserSchema)
 def read_users_me(current_user: User = Depends(get_current_active_user)):
