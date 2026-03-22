@@ -7,11 +7,12 @@ class TodoService:
     def __init__(self, repo: TodoRepository):
         self.repo = repo
 
-    def create_todo(self, todo_in: ToDoCreate) -> ToDo:
-        return self.repo.create(todo_in)
+    def create_todo(self, todo_in: ToDoCreate, owner_id: int) -> ToDo:
+        return self.repo.create(todo_in, owner_id)
 
     def list_todos(
         self,
+        owner_id: int,
         is_done: Optional[bool] = None,
         q: Optional[str] = None,
         sort: Optional[str] = None,
@@ -19,6 +20,7 @@ class TodoService:
         offset: int = 0,
     ) -> ToDoListResponse:
         items, total = self.repo.list_and_count(
+            owner_id=owner_id,
             is_done=is_done,
             q=q,
             sort=sort,
