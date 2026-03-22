@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Optional
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, event
@@ -33,14 +33,18 @@ class Todo(SQLModel, table=True):
     due_date: Optional[date] = Field(default=None, sa_column=Column(Date(), nullable=True))
     owner_id: int = Field(sa_column=Column(ForeignKey("user.id"), nullable=False))
     created_at: datetime = Field(
-        sa_column=Column(DateTime(), default=datetime.utcnow, nullable=False)
+        sa_column=Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     )
     updated_at: datetime = Field(
         sa_column=Column(
-            DateTime(),
-            default=datetime.utcnow,
+            DateTime(timezone=True),
+            default=lambda: datetime.now(UTC),
             nullable=False,
         )
+    )
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
     )
 
     tags: list[Tag] = Relationship(back_populates="todos", link_model=TodoTagLink)
@@ -48,7 +52,7 @@ class Todo(SQLModel, table=True):
 
 @event.listens_for(Todo, "before_insert")
 def set_timestamps(mapper, connection, target) -> None:
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     if not target.created_at:
         target.created_at = now
     target.updated_at = now
@@ -56,4 +60,4 @@ def set_timestamps(mapper, connection, target) -> None:
 
 @event.listens_for(Todo, "before_update")
 def touch_updated_at(mapper, connection, target) -> None:
-    target.updated_at = datetime.utcnow()
+    target.updated_at = datetime.now(UTC)
