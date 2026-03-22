@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 import sys
 from typing import Optional
@@ -17,6 +17,10 @@ from schemas.todo import ToDoCreate, ToDoUpdate
 class TodoRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    @staticmethod
+    def _not_deleted():
+        return Todo.deleted_at.is_(None)
 
     def _get_or_create_tags(self, tag_names: list[str]) -> list[Tag]:
         if not tag_names:
@@ -60,10 +64,14 @@ class TodoRepository:
     ) -> tuple[list[Todo], int]:
         statement = (
             select(Todo)
-            .where(Todo.owner_id == owner_id)
+            .where(Todo.owner_id == owner_id, self._not_deleted())
             .options(selectinload(Todo.tags))
         )
-        count_statement = select(func.count()).select_from(Todo).where(Todo.owner_id == owner_id)
+        count_statement = (
+            select(func.count())
+            .select_from(Todo)
+            .where(Todo.owner_id == owner_id, self._not_deleted())
+        )
 
         if is_done is not None:
             statement = statement.where(Todo.is_done == is_done)
@@ -101,13 +109,23 @@ class TodoRepository:
     ) -> tuple[list[Todo], int]:
         statement = (
             select(Todo)
-            .where(Todo.owner_id == owner_id, Todo.is_done.is_(False), Todo.due_date.is_not(None))
+            .where(
+                Todo.owner_id == owner_id,
+                Todo.is_done.is_(False),
+                Todo.due_date.is_not(None),
+                self._not_deleted(),
+            )
             .options(selectinload(Todo.tags))
         )
         count_statement = (
             select(func.count())
             .select_from(Todo)
-            .where(Todo.owner_id == owner_id, Todo.is_done.is_(False), Todo.due_date.is_not(None))
+            .where(
+                Todo.owner_id == owner_id,
+                Todo.is_done.is_(False),
+                Todo.due_date.is_not(None),
+                self._not_deleted(),
+            )
         )
 
         if only_overdue:
@@ -124,7 +142,11 @@ class TodoRepository:
         return items, total
 
     def get_by_id(self, todo_id: int, owner_id: Optional[int] = None) -> Optional[Todo]:
-        statement = select(Todo).where(Todo.id == todo_id).options(selectinload(Todo.tags))
+        statement = (
+            select(Todo)
+            .where(Todo.id == todo_id, self._not_deleted())
+            .options(selectinload(Todo.tags))
+        )
         if owner_id is not None:
             statement = statement.where(Todo.owner_id == owner_id)
         return self.session.exec(statement).first()
@@ -151,6 +173,8 @@ class TodoRepository:
         if not todo:
             return False
 
-        self.session.delete(todo)
+        todo.deleted_at = datetime.now(UTC)
+        self.session.add(todo)
         self.session.commit()
         return True
+
