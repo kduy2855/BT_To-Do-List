@@ -1,7 +1,10 @@
-from pydantic import field_validator
+from pydantic import ConfigDict, field_validator
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=".env")
+
     app_name: str = "To-Do API"
     debug: bool = True
     version: str = "1.0.0"
@@ -22,7 +25,5 @@ class Settings(BaseSettings):
                 return True
         return value
 
-    class Config:
-        env_file = ".env"
 
 settings = Settings()
